@@ -1,6 +1,6 @@
 const express = require('express');
 const business = require('../config/business');
-const { getServiceById, isSlotAvailable } = require('../services/availability');
+const { getServiceById, isSlotAvailable, splitLocalDateTime } = require('../services/availability');
 const { createEvent } = require('../services/googleCalendar');
 
 const router = express.Router();
@@ -31,18 +31,15 @@ router.post('/', async (req, res) => {
     }
 
     const endDate = new Date(startDate.getTime() + service.durationMinutes * 60000);
+    const { dateStr, timeStr } = splitLocalDateTime(startDate, business.timezone);
 
     const event = await createEvent({
-      summary: `${service.name} - ${customerName}`,
-      description: [
-        `Serviço: ${service.name}`,
-        `Cliente: ${customerName}`,
-        `Telefone: ${customerPhone}`,
-        'Agendado via cadubarber-agendamento',
-      ].join('\n'),
-      startISO: startDate.toISOString(),
-      endISO: endDate.toISOString(),
-      timeZone: business.timezone,
+      dateStr,
+      timeStr,
+      durationMinutes: service.durationMinutes,
+      serviceName: service.name,
+      customerName,
+      customerPhone,
     });
 
     res.status(201).json({
@@ -55,7 +52,7 @@ router.post('/', async (req, res) => {
         end: endDate.toISOString(),
         customerName,
         customerPhone,
-        eventId: event.id,
+        eventId: event.eventId,
       },
     });
   } catch (err) {

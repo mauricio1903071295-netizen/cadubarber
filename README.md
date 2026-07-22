@@ -6,7 +6,7 @@ App web de agendamento de horários para barbearia. Cliente escolhe um serviço,
 
 - **Frontend:** React + Vite + TailwindCSS (`frontend/`)
 - **Backend:** Node.js + Express (`backend/`), exposto na Vercel como função serverless (`api/index.js`)
-- **Integração:** Google Calendar API via Service Account (agenda da conta `cadubarber47@gmail.com`)
+- **Integração:** Google Agenda via Google Apps Script publicado como Web App (agenda da conta `cadubarber47@gmail.com`) — sem precisar de projeto no Google Cloud Console nem cartão de crédito
 - **Hospedagem:** Vercel (free tier) — frontend estático + funções serverless
 
 ## Estrutura de pastas
@@ -28,9 +28,10 @@ cadubarber-agendamento/
 │   │   ├── services.js    # lista de serviços (nome, duração, preço)
 │   │   └── env.js         # leitura de variáveis de ambiente
 │   ├── routes/             # /api/services, /api/availability, /api/appointments
-│   └── services/
-│       ├── googleCalendar.js  # listar/criar eventos na Google Agenda
-│       └── availability.js    # calcula horários livres cruzando agenda + horário de funcionamento
+│   ├── services/
+│   │   ├── googleCalendar.js  # chama o Apps Script para listar/criar eventos na Google Agenda
+│   │   └── availability.js    # calcula horários livres cruzando agenda + horário de funcionamento
+│   └── APPS_SCRIPT.md      # código do Apps Script e como publicá-lo
 ├── vercel.json
 └── package.json            # workspace raiz (frontend + backend)
 ```
@@ -40,60 +41,34 @@ cadubarber-agendamento/
 1. Cliente escolhe um serviço na home.
 2. O app busca na Google Agenda do barbeiro os eventos dos próximos dias (`GET /api/availability`) e calcula os horários livres, cruzando com o horário de funcionamento fixo (terça a sábado, 9h–19h, com intervalo de almoço 12h–13h) e a duração do serviço.
 3. Cliente escolhe um horário, preenche nome e telefone e confirma (`POST /api/appointments`).
-4. O backend reconfere a disponibilidade (evita conflito de última hora) e cria um evento na Google Agenda via Service Account.
+4. O backend reconfere a disponibilidade (evita conflito de última hora) e cria um evento na Google Agenda através do Apps Script.
 5. Cliente vê a tela de confirmação com os detalhes.
 
 Como o app lê a agenda inteira (não só os eventos que ele mesmo cria), qualquer evento que o barbeiro criar manualmente na Google Agenda também bloqueia o horário automaticamente.
 
 O horário de funcionamento e a lista de serviços estão fixos em `backend/config/business.js` e `backend/config/services.js` — edite esses arquivos para ajustar.
 
-## Configurando a Google Calendar API (passo a passo)
+## Configurando a integração com a Google Agenda (passo a passo)
 
-Vamos usar uma **Service Account** (conta de serviço) em vez de OAuth de usuário final — assim o backend acessa a agenda diretamente, sem exigir login do barbeiro no app.
+Em vez de um projeto no Google Cloud Console com Service Account (que em alguns fluxos
+pede cartão de crédito), usamos um **Google Apps Script publicado como Web App**,
+rodando com a própria conta `cadubarber47@gmail.com`. É gratuito e não exige ativar
+faturamento. O código completo do script e as instruções de publicação estão em
+[`backend/APPS_SCRIPT.md`](backend/APPS_SCRIPT.md).
 
-### 1. Criar o projeto no Google Cloud Console
+Resumo:
 
-1. Acesse [console.cloud.google.com](https://console.cloud.google.com) **logado com a conta `cadubarber47@gmail.com`**.
-2. No topo, clique no seletor de projetos → **Novo projeto**.
-3. Dê um nome (ex: `cadubarber-agendamento`) e clique em **Criar**.
-4. Aguarde a criação e selecione o projeto novo no seletor.
-
-### 2. Ativar a Google Calendar API
-
-1. No menu lateral, vá em **APIs e serviços → Biblioteca**.
-2. Busque por **Google Calendar API**.
-3. Clique nela e depois em **Ativar**.
-
-### 3. Criar a Service Account
-
-1. Vá em **APIs e serviços → Credenciais**.
-2. Clique em **Criar credenciais → Conta de serviço**.
-3. Dê um nome (ex: `cadubarber-agenda`) e clique em **Criar e continuar**.
-4. Nas permissões do projeto, pode pular (não precisa de papel no projeto) e clicar em **Concluir**.
-5. Na lista de contas de serviço, clique na que você criou.
-6. Vá na aba **Chaves → Adicionar chave → Criar nova chave**, formato **JSON**, e confirme.
-7. Um arquivo `.json` será baixado — **guarde-o em local seguro e nunca o versione no git**. Ele contém dois campos importantes: `client_email` e `private_key`.
-
-### 4. Compartilhar a Google Agenda com a Service Account
-
-1. No Google Agenda (com a conta `cadubarber47@gmail.com` logada), abra as configurações da agenda que o barbeiro usa (pode ser a agenda principal).
-2. Em **Compartilhar com pessoas específicas**, clique em **Adicionar pessoas**.
-3. Cole o `client_email` da service account (algo como `cadubarber-agenda@SEU-PROJETO.iam.gserviceaccount.com`).
-4. Defina a permissão como **"Fazer alterações nos eventos"** (necessário para criar agendamentos).
-5. Salve.
-6. Copie também o **ID da agenda** (em Configurações da agenda → "Integrar agenda" → "ID da agenda"). Se for a agenda principal da conta, o ID é o próprio e-mail: `cadubarber47@gmail.com`.
-
-### 5. Preencher as variáveis de ambiente
+1. Publique o script (passo a passo em `backend/APPS_SCRIPT.md`) e copie a URL gerada
+   (termina em `/exec`).
+2. Defina um token secreto forte na constante `API_TOKEN` do script.
+3. Preencha as variáveis de ambiente do backend.
 
 Copie `backend/.env.example` para `backend/.env` e preencha:
 
 ```
-GOOGLE_CLIENT_EMAIL=cadubarber-agenda@SEU-PROJETO.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nSUACHAVEAQUI\n-----END PRIVATE KEY-----\n"
-GOOGLE_CALENDAR_ID=cadubarber47@gmail.com
+APPS_SCRIPT_URL=https://script.google.com/macros/s/SEU_ID_AQUI/exec
+APPS_SCRIPT_TOKEN=o-mesmo-token-definido-no-script
 ```
-
-`GOOGLE_PRIVATE_KEY` é o campo `private_key` do JSON baixado — copie exatamente como está (com as aspas e os `\n` literais).
 
 ## Rodando localmente
 
@@ -119,9 +94,8 @@ O Vite já está configurado para redirecionar chamadas `/api/*` para `http://lo
    - **Output Directory:** `frontend/dist`
    - A função serverless em `api/index.js` é publicada automaticamente em `/api/*`.
 4. Em **Settings → Environment Variables**, adicione (para os ambientes Production e Preview):
-   - `GOOGLE_CLIENT_EMAIL`
-   - `GOOGLE_PRIVATE_KEY` (cole a chave completa; a Vercel aceita quebras de linha reais ou `\n` — o código já converte `\n` literais)
-   - `GOOGLE_CALENDAR_ID`
+   - `APPS_SCRIPT_URL`
+   - `APPS_SCRIPT_TOKEN`
    - `FRONTEND_URL` (opcional; pode deixar `*` já que frontend e API ficam no mesmo domínio)
 5. Clique em **Deploy**.
 

@@ -2,8 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   port: process.env.PORT || 3001,
-  googleClientEmail: process.env.GOOGLE_CLIENT_EMAIL,
-  googlePrivateKey: process.env.GOOGLE_PRIVATE_KEY,
-  googleCalendarId: process.env.GOOGLE_CALENDAR_ID,
+  appsScriptUrl: process.env.APPS_SCRIPT_URL,
+  appsScriptToken: process.env.APPS_SCRIPT_TOKEN,
   frontendUrl: process.env.FRONTEND_URL || '*',
 };

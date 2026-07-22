@@ -142,4 +142,18 @@ async function isSlotAvailable(startISO, service) {
   return !conflict;
 }
 
-module.exports = { getServiceById, getAvailableDays, isSlotAvailable };
+// Divide um instante em data (YYYY-MM-DD) e hora (HH:mm) na hora local do
+// fuso do negócio — usado para falar com o Apps Script, que trabalha com
+// data/hora local em vez de instantes UTC.
+function splitLocalDateTime(date, timeZone) {
+  const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone }).format(date);
+  const timeStr = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+  return { dateStr, timeStr };
+}
+
+module.exports = { getServiceById, getAvailableDays, isSlotAvailable, splitLocalDateTime };
