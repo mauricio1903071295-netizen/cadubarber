@@ -18,32 +18,33 @@ export default function BookingForm({ submitting, onBack, onConfirm }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 text-white focus:border-barber-gold outline-none"
+          className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-3 text-white text-base focus:border-barber-gold outline-none"
           placeholder="Seu nome completo"
         />
       </div>
       <div>
         <label className="block text-sm text-neutral-400 mb-1">Telefone (WhatsApp)</label>
         <input
+          type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           required
-          className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 text-white focus:border-barber-gold outline-none"
+          className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-3 text-white text-base focus:border-barber-gold outline-none"
           placeholder="(11) 91234-5678"
         />
       </div>
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <button
           type="button"
           onClick={onBack}
-          className="px-4 py-2 rounded-lg border border-neutral-800 text-neutral-300 hover:border-neutral-600"
+          className="px-4 py-3 rounded-lg border border-neutral-800 text-neutral-300 hover:border-neutral-600 order-2 sm:order-1"
         >
           Voltar
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="px-4 py-2 rounded-lg bg-barber-gold text-neutral-950 font-semibold hover:opacity-90 disabled:opacity-50"
+          className="px-4 py-3 rounded-lg bg-barber-gold text-neutral-950 font-semibold hover:opacity-90 disabled:opacity-50 order-1 sm:order-2 flex-1"
         >
           {submitting ? 'Confirmando...' : 'Confirmar agendamento'}
         </button>

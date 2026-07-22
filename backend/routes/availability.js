@@ -9,13 +9,15 @@ router.get('/', async (req, res) => {
   if (!serviceId) {
     return res.status(400).json({ error: 'Parâmetro serviceId é obrigatório' });
   }
-  if (!getServiceById(serviceId)) {
-    return res.status(404).json({ error: 'Serviço não encontrado' });
-  }
 
   try {
-    const days = await getAvailableDays(serviceId);
-    res.json({ days });
+    const service = await getServiceById(serviceId);
+    if (!service) {
+      return res.status(404).json({ error: 'Serviço não encontrado' });
+    }
+
+    const result = await getAvailableDays(serviceId);
+    res.json(result);
   } catch (err) {
     console.error('Erro ao consultar disponibilidade:', err);
     res.status(500).json({ error: 'Erro ao consultar disponibilidade na agenda' });

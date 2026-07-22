@@ -18,19 +18,24 @@ cadubarber-agendamento/
 ├── frontend/             # React + Vite + Tailwind
 │   └── src/
 │       ├── components/   # ServiceList, ScheduleList, BookingForm, Confirmation
-│       ├── api.js        # chamadas à API
-│       └── App.jsx        # fluxo do cliente (serviço → horário → dados → confirmação)
+│       ├── api.js        # chamadas à API pública
+│       ├── adminApi.js   # chamadas à API do painel admin (com senha)
+│       ├── App.jsx        # fluxo do cliente (serviço → horário → dados → confirmação)
+│       ├── AdminApp.jsx   # painel /admin do Cadu (serviços, horários, trava de agenda)
+│       └── main.jsx       # roteamento simples: "/" → App, "/admin" → AdminApp
 ├── backend/
 │   ├── app.js             # cria o app Express e monta as rotas
 │   ├── server.js          # entrypoint local (npm run dev)
 │   ├── config/
-│   │   ├── business.js    # horário de funcionamento fixo + fuso
-│   │   ├── services.js    # lista de serviços (nome, duração, preço)
+│   │   ├── business.js    # horário de funcionamento padrão + fuso (usado até o Cadu salvar algo no /admin)
+│   │   ├── services.js    # lista de serviços padrão (nome, duração, preço)
 │   │   └── env.js         # leitura de variáveis de ambiente
-│   ├── routes/             # /api/services, /api/availability, /api/appointments
+│   ├── routes/             # /api/services, /api/availability, /api/appointments, /api/admin
 │   ├── services/
-│   │   ├── googleCalendar.js  # chama o Apps Script para listar/criar eventos na Google Agenda
-│   │   └── availability.js    # calcula horários livres cruzando agenda + horário de funcionamento
+│   │   ├── appsScriptClient.js  # cliente HTTP genérico para o Apps Script
+│   │   ├── googleCalendar.js    # listar/criar eventos na Google Agenda via Apps Script
+│   │   ├── config.js            # busca/salva a configuração editável (serviços, horários, trava)
+│   │   └── availability.js      # calcula horários livres cruzando agenda + configuração
 │   └── APPS_SCRIPT.md      # código do Apps Script e como publicá-lo
 ├── vercel.json
 └── package.json            # workspace raiz (frontend + backend)
@@ -46,7 +51,19 @@ cadubarber-agendamento/
 
 Como o app lê a agenda inteira (não só os eventos que ele mesmo cria), qualquer evento que o barbeiro criar manualmente na Google Agenda também bloqueia o horário automaticamente.
 
-O horário de funcionamento e a lista de serviços estão fixos em `backend/config/business.js` e `backend/config/services.js` — edite esses arquivos para ajustar.
+## Painel do barbeiro (`/admin`)
+
+Em `SEU_DOMINIO/admin` o Cadu consegue, sem editar código:
+
+- Editar serviços (nome, duração, preço) — adicionar/remover
+- Editar o horário de funcionamento de cada dia da semana e o intervalo de almoço
+- **Trancar a agenda** — desativa novos agendamentos temporariamente (ex: férias)
+
+O acesso é protegido por uma senha única (variável `ADMIN_PASSWORD`), sem sistema de
+login completo. Essa configuração é guardada no próprio Apps Script (`PropertiesService`,
+veja `backend/APPS_SCRIPT.md`) — os arquivos `backend/config/business.js` e
+`backend/config/services.js` viram só o **valor padrão** usado até o Cadu salvar algo
+pela primeira vez no painel.
 
 ## Configurando a integração com a Google Agenda (passo a passo)
 
@@ -68,6 +85,7 @@ Copie `backend/.env.example` para `backend/.env` e preencha:
 ```
 APPS_SCRIPT_URL=https://script.google.com/macros/s/SEU_ID_AQUI/exec
 APPS_SCRIPT_TOKEN=o-mesmo-token-definido-no-script
+ADMIN_PASSWORD=senha-do-painel-admin-do-cadu
 ```
 
 ## Rodando localmente
@@ -96,6 +114,7 @@ O Vite já está configurado para redirecionar chamadas `/api/*` para `http://lo
 4. Em **Settings → Environment Variables**, adicione (para os ambientes Production e Preview):
    - `APPS_SCRIPT_URL`
    - `APPS_SCRIPT_TOKEN`
+   - `ADMIN_PASSWORD`
    - `FRONTEND_URL` (opcional; pode deixar `*` já que frontend e API ficam no mesmo domínio)
 5. Clique em **Deploy**.
 
@@ -119,7 +138,6 @@ git push -u origin <nome-da-branch>
 
 ## Próximos passos (fora do MVP)
 
-- Horário de funcionamento configurável por um painel do barbeiro (hoje é fixo em `backend/config/business.js`).
-- Autenticação simples para o barbeiro gerenciar serviços sem editar código.
 - Notificação por WhatsApp/SMS ao cliente e ao barbeiro na confirmação.
 - Cancelamento/reagendamento pelo cliente.
+- Login "de verdade" (Google) em vez da senha única do painel `/admin`, se o Cadu quiser dar acesso a mais gente no futuro.

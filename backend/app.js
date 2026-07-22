@@ -5,6 +5,7 @@ const business = require('./config/business');
 const servicesRouter = require('./routes/services');
 const availabilityRouter = require('./routes/availability');
 const appointmentsRouter = require('./routes/appointments');
+const adminRouter = require('./routes/admin');
 
 function createApp() {
   const app = express();
@@ -19,6 +20,7 @@ function createApp() {
   app.use('/api/services', servicesRouter);
   app.use('/api/availability', availabilityRouter);
   app.use('/api/appointments', appointmentsRouter);
+  app.use('/api/admin', adminRouter);
 
   return app;
 }

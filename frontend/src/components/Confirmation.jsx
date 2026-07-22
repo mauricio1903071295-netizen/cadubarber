@@ -39,7 +39,7 @@ export default function Confirmation({ appointment, onNewBooking }) {
       </dl>
       <button
         onClick={onNewBooking}
-        className="mt-6 w-full rounded-lg bg-barber-gold text-neutral-950 font-semibold py-2 hover:opacity-90"
+        className="mt-6 w-full rounded-lg bg-barber-gold text-neutral-950 font-semibold py-3 hover:opacity-90"
       >
         Fazer novo agendamento
       </button>

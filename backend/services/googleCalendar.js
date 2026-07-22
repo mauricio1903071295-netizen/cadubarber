@@ -1,35 +1,9 @@
-const env = require('../config/env');
-
-// Chama o Google Apps Script Web App que expõe a agenda do barbeiro
-// (veja backend/APPS_SCRIPT.md para o código do script).
-async function callScript(action, params, method = 'GET') {
-  let res;
-
-  if (method === 'GET') {
-    const url = new URL(env.appsScriptUrl);
-    url.searchParams.set('token', env.appsScriptToken);
-    url.searchParams.set('action', action);
-    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    res = await fetch(url.toString());
-  } else {
-    res = await fetch(env.appsScriptUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: env.appsScriptToken, action, ...params }),
-    });
-  }
-
-  const data = await res.json();
-  if (data.error) {
-    throw new Error(data.error);
-  }
-  return data;
-}
+const { callAppsScript } = require('./appsScriptClient');
 
 // Lista eventos (ocupados) da agenda num intervalo [timeMinISO, timeMaxISO).
 // Lê a agenda inteira, então eventos criados manualmente pelo barbeiro também bloqueiam horários.
 async function listEvents(timeMinISO, timeMaxISO) {
-  const data = await callScript('eventos', { desde: timeMinISO, ate: timeMaxISO });
+  const data = await callAppsScript('eventos', { desde: timeMinISO, ate: timeMaxISO });
   return (data.eventos || []).map((ev) => ({
     start: { dateTime: ev.inicio },
     end: { dateTime: ev.fim },
@@ -38,7 +12,7 @@ async function listEvents(timeMinISO, timeMaxISO) {
 
 // Cria um novo evento (agendamento) na agenda do barbeiro.
 async function createEvent({ dateStr, timeStr, durationMinutes, serviceName, customerName, customerPhone }) {
-  const data = await callScript(
+  const data = await callAppsScript(
     'criar_agendamento',
     {
       data: dateStr,

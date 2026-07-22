@@ -21,6 +21,7 @@ export default function App() {
 
   const [selectedService, setSelectedService] = useState(null);
   const [days, setDays] = useState([]);
+  const [locked, setLocked] = useState(false);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [availabilityError, setAvailabilityError] = useState('');
 
@@ -41,7 +42,10 @@ export default function App() {
     setLoadingAvailability(true);
     setAvailabilityError('');
     getAvailability(service.id)
-      .then((data) => setDays(data.days))
+      .then((data) => {
+        setLocked(Boolean(data.locked));
+        setDays(data.days || []);
+      })
       .catch((err) => setAvailabilityError(err.message))
       .finally(() => setLoadingAvailability(false));
   }
@@ -75,16 +79,17 @@ export default function App() {
     setSelectedSlot(null);
     setAppointment(null);
     setDays([]);
+    setLocked(false);
   }
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-neutral-900 px-6 py-5">
-        <h1 className="text-2xl font-bold text-white">{businessName}</h1>
+      <header className="border-b border-neutral-900 px-4 sm:px-6 py-4 sm:py-5">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">{businessName}</h1>
         <p className="text-neutral-400 text-sm">{businessTagline}</p>
       </header>
 
-      <main className="px-6 py-8 max-w-3xl mx-auto">
+      <main className="px-4 sm:px-6 py-6 sm:py-8 max-w-3xl mx-auto">
         {step === STEPS.SERVICES && (
           <>
             <h2 className="text-lg font-semibold mb-4">Escolha um serviço</h2>
@@ -97,7 +102,7 @@ export default function App() {
           <>
             <button
               onClick={() => setStep(STEPS.SERVICES)}
-              className="text-sm text-neutral-400 hover:text-white mb-4"
+              className="text-sm text-neutral-400 hover:text-white mb-4 py-1"
             >
               ← Trocar serviço
             </button>
@@ -107,7 +112,13 @@ export default function App() {
               {selectedService.price.toFixed(2)}
             </p>
             {availabilityError && <p className="text-red-400 mb-3">{availabilityError}</p>}
-            <ScheduleList days={days} loading={loadingAvailability} onSelectSlot={handleSelectSlot} />
+            {!loadingAvailability && locked ? (
+              <p className="text-neutral-400">
+                A agenda está temporariamente fechada para novos agendamentos. Volte em breve!
+              </p>
+            ) : (
+              <ScheduleList days={days} loading={loadingAvailability} onSelectSlot={handleSelectSlot} />
+            )}
           </>
         )}
 
@@ -115,7 +126,7 @@ export default function App() {
           <>
             <button
               onClick={() => setStep(STEPS.SCHEDULE)}
-              className="text-sm text-neutral-400 hover:text-white mb-4"
+              className="text-sm text-neutral-400 hover:text-white mb-4 py-1"
             >
               ← Trocar horário
             </button>

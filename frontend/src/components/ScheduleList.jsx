@@ -28,12 +28,12 @@ export default function ScheduleList({ days, onSelectSlot, loading }) {
             <h4 className="text-sm font-semibold text-neutral-300 mb-2 capitalize">
               {weekdayFmt.format(dateObj)} — {dayFmt.format(dateObj)}
             </h4>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {day.slots.map((slot) => (
                 <button
                   key={slot.start}
                   onClick={() => onSelectSlot(slot)}
-                  className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm hover:border-barber-gold hover:text-barber-gold transition-colors"
+                  className="rounded-lg border border-neutral-800 bg-neutral-900 px-2 py-3 text-sm hover:border-barber-gold hover:text-barber-gold active:bg-neutral-800 transition-colors"
                 >
                   {timeFmt.format(new Date(slot.start))}
                 </button>

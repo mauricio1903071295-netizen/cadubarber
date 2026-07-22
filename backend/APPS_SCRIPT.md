@@ -5,9 +5,11 @@ de crédito em alguns fluxos), este projeto usa um **Google Apps Script publicad
 Web App**. Ele roda com a própria conta `cadubarber47@gmail.com` e não exige ativar
 faturamento — é 100% gratuito.
 
-O script é só uma "ponte" fina com a agenda: lista eventos crus e cria/cancela eventos.
-Toda a lógica de horário de funcionamento, intervalo de almoço e duração de cada serviço
-fica no backend Node (`backend/services/availability.js`), não no script.
+O script é uma "ponte" fina com a agenda e com a configuração do negócio: lista eventos
+crus, cria/cancela eventos, e guarda a configuração editável pelo painel `/admin`
+(serviços, horário de funcionamento, trava de agenda) usando `PropertiesService` — não
+precisa de planilha nem de banco de dados separado. Toda a lógica de cálculo de horários
+livres fica no backend Node (`backend/services/availability.js`), não no script.
 
 ## Como publicar
 
@@ -23,12 +25,15 @@ fica no backend Node (`backend/services/availability.js`), não no script.
    Gerenciar implantações → editar (lápis) → Nova versão → Implantar**. Criar uma "Nova
    implantação" do zero gera uma URL diferente.
 
+Confira também a seção [Fuso horário do projeto](#-fuso-horário-do-projeto) abaixo.
+
 ## Código (`Code.gs`)
 
 ```javascript
 // ===== CONFIGURACAO =====
 var CALENDAR_ID = 'primary';
 var API_TOKEN = 'TROQUE_ESSE_TOKEN_POR_ALGO_SECRETO';
+var CONFIG_KEY = 'APP_CONFIG';
 
 function doGet(e) { return handleRequest(e, 'GET'); }
 function doPost(e) { return handleRequest(e, 'POST'); }
@@ -42,6 +47,8 @@ function handleRequest(e, method) {
     if (action === 'eventos') return jsonResponse(getEventos(params.desde, params.ate));
     if (action === 'criar_agendamento') return jsonResponse(criarAgendamento(params));
     if (action === 'cancelar_agendamento') return jsonResponse(cancelarAgendamento(params.eventId));
+    if (action === 'obter_configuracao') return jsonResponse(obterConfiguracao());
+    if (action === 'salvar_configuracao') return jsonResponse(salvarConfiguracao(params));
     return jsonResponse({ error: 'Acao desconhecida: ' + action });
   } catch (err) {
     return jsonResponse({ error: err.message });
@@ -88,6 +95,19 @@ function cancelarAgendamento(eventId) {
   return { sucesso: true };
 }
 
+// Configuracao editavel pelo painel /admin (servicos, horario de
+// funcionamento, trava de agenda). Guardada como JSON no PropertiesService —
+// nao precisa de planilha nem de banco de dados separado.
+function obterConfiguracao() {
+  var raw = PropertiesService.getScriptProperties().getProperty(CONFIG_KEY);
+  return { configuracao: raw ? JSON.parse(raw) : null };
+}
+
+function salvarConfiguracao(params) {
+  PropertiesService.getScriptProperties().setProperty(CONFIG_KEY, params.configuracao);
+  return { sucesso: true };
+}
+
 function jsonResponse(obj) {
   var output = ContentService.createTextOutput(JSON.stringify(obj));
   output.setMimeType(ContentService.MimeType.JSON);
@@ -120,6 +140,9 @@ Todas as requisições (GET com querystring ou POST com corpo JSON) precisam do 
 - **`POST { action: 'criar_agendamento', data, hora, duracao, servico, nome_cliente, telefone_cliente }`**
   → `{ sucesso: true, eventId, inicio, fim }`
 - **`POST { action: 'cancelar_agendamento', eventId }`** → `{ sucesso: true }` (não usado pelo MVP ainda)
+- **`GET ?action=obter_configuracao`** → `{ configuracao: {...} | null }` (`null` até o painel
+  admin salvar pela primeira vez — o backend Node usa valores padrão nesse caso)
+- **`POST { action: 'salvar_configuracao', configuracao: '<JSON em string>' }`** → `{ sucesso: true }`
 
 `data` é `YYYY-MM-DD` e `hora` é `HH:mm`, sempre no fuso horário do script (o mesmo da
 conta `cadubarber47@gmail.com`, que deve ser `America/Sao_Paulo`).

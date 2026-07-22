@@ -1,5 +1,5 @@
 const express = require('express');
-const business = require('../config/business');
+const { getConfig } = require('../services/config');
 const { getServiceById, isSlotAvailable, splitLocalDateTime } = require('../services/availability');
 const { createEvent } = require('../services/googleCalendar');
 
@@ -14,24 +14,29 @@ router.post('/', async (req, res) => {
     });
   }
 
-  const service = getServiceById(serviceId);
-  if (!service) {
-    return res.status(404).json({ error: 'Serviço não encontrado' });
-  }
-
   const startDate = new Date(start);
   if (Number.isNaN(startDate.getTime())) {
     return res.status(400).json({ error: 'Horário inválido' });
   }
 
   try {
+    const config = await getConfig();
+    if (config.locked) {
+      return res.status(423).json({ error: 'Agenda temporariamente fechada. Tente novamente mais tarde.' });
+    }
+
+    const service = await getServiceById(serviceId);
+    if (!service) {
+      return res.status(404).json({ error: 'Serviço não encontrado' });
+    }
+
     const available = await isSlotAvailable(start, service);
     if (!available) {
       return res.status(409).json({ error: 'Esse horário não está mais disponível. Escolha outro.' });
     }
 
     const endDate = new Date(startDate.getTime() + service.durationMinutes * 60000);
-    const { dateStr, timeStr } = splitLocalDateTime(startDate, business.timezone);
+    const { dateStr, timeStr } = splitLocalDateTime(startDate, config.timezone);
 
     const event = await createEvent({
       dateStr,
