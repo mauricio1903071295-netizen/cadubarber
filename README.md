@@ -43,13 +43,14 @@ cadubarber-agendamento/
 
 ## Como funciona
 
-1. Cliente escolhe um serviço na home.
-2. O app busca na Google Agenda do barbeiro os eventos dos próximos dias (`GET /api/availability`) e calcula os horários livres, cruzando com o horário de funcionamento fixo (terça a sábado, 9h–19h, com intervalo de almoço 12h–13h) e a duração do serviço.
-3. Cliente escolhe um horário, preenche nome e telefone e confirma (`POST /api/appointments`).
-4. O backend reconfere a disponibilidade (evita conflito de última hora) e cria um evento na Google Agenda através do Apps Script.
-5. Cliente vê a tela de confirmação com os detalhes.
+1. Cliente informa nome e telefone (com máscara) na home. O app busca na Google Agenda se já existe algum agendamento futuro com aquele telefone (`GET /api/appointments?phone=`); se existir, mostra os detalhes com opção de cancelar (`DELETE /api/appointments/:eventId`) em vez de seguir direto pro agendamento.
+2. Cliente escolhe um serviço.
+3. O app busca na Google Agenda do barbeiro os eventos dos próximos dias (`GET /api/availability`) e calcula os horários livres, cruzando com o horário de funcionamento configurado e a duração do serviço.
+4. Cliente escolhe um horário e confirma na tela de revisão (`POST /api/appointments`) — nome e telefone já foram coletados no passo 1.
+5. O backend reconfere a disponibilidade (evita conflito de última hora) e cria um evento na Google Agenda através do Apps Script.
+6. Cliente vê a tela de confirmação com os detalhes e um botão para enviar a confirmação por WhatsApp (se o Cadu tiver cadastrado o número em `/admin`).
 
-Como o app lê a agenda inteira (não só os eventos que ele mesmo cria), qualquer evento que o barbeiro criar manualmente na Google Agenda também bloqueia o horário automaticamente.
+Como o app lê a agenda inteira (não só os eventos que ele mesmo cria), qualquer evento que o barbeiro criar manualmente na Google Agenda também bloqueia o horário automaticamente. A busca de agendamento por telefone nunca olha eventos passados, então não cresce com o tempo nem precisa de um banco de dados separado.
 
 ## Painel do barbeiro (`/admin`)
 
@@ -58,6 +59,7 @@ Em `SEU_DOMINIO/admin` o Cadu consegue, sem editar código:
 - Editar serviços (nome, duração, preço) — adicionar/remover
 - Editar o horário de funcionamento de cada dia da semana e o intervalo de almoço
 - **Trancar a agenda** — desativa novos agendamentos temporariamente (ex: férias)
+- Cadastrar o WhatsApp e o endereço da barbearia (usados no botão de confirmação que o cliente vê depois de agendar)
 
 O acesso é protegido por uma senha única (variável `ADMIN_PASSWORD`), sem sistema de
 login completo. Essa configuração é guardada no próprio Apps Script (`PropertiesService`,
@@ -138,6 +140,5 @@ git push -u origin <nome-da-branch>
 
 ## Próximos passos (fora do MVP)
 
-- Notificação por WhatsApp/SMS ao cliente e ao barbeiro na confirmação.
-- Cancelamento/reagendamento pelo cliente.
+- Envio automático da confirmação por WhatsApp (hoje é um link `wa.me` que o cliente/barbeiro precisa tocar pra enviar — automação de verdade exigiria a API oficial do WhatsApp, com verificação de empresa e custo).
 - Login "de verdade" (Google) em vez da senha única do painel `/admin`, se o Cadu quiser dar acesso a mais gente no futuro.

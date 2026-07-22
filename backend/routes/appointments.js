@@ -87,6 +87,8 @@ router.post('/', async (req, res) => {
         customerName,
         customerPhone,
         eventId: event.eventId,
+        whatsappNumber: config.whatsappNumber || '',
+        address: config.address || '',
       },
     });
   } catch (err) {

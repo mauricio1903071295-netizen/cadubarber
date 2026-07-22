@@ -15,6 +15,8 @@ function buildDefaultConfig() {
     daysAhead: defaultBusiness.daysAhead,
     locked: false,
     services: defaultServices,
+    whatsappNumber: '',
+    address: '',
   };
 }
 
