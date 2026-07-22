@@ -1,25 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ServiceList from './components/ServiceList.jsx';
 import ScheduleList from './components/ScheduleList.jsx';
-import BookingForm from './components/BookingForm.jsx';
+import PhoneGate from './components/PhoneGate.jsx';
+import ExistingAppointment from './components/ExistingAppointment.jsx';
+import ReviewStep from './components/ReviewStep.jsx';
 import Confirmation from './components/Confirmation.jsx';
-import { getServices, getAvailability, createAppointment } from './api.js';
+import {
+  getServices,
+  getAvailability,
+  createAppointment,
+  findAppointmentsByPhone,
+  cancelAppointment,
+} from './api.js';
 import { businessName, businessTagline } from './config.js';
 
 const STEPS = {
+  PHONE: 'phone',
+  EXISTING: 'existing',
   SERVICES: 'services',
   SCHEDULE: 'schedule',
-  FORM: 'form',
+  REVIEW: 'review',
   CONFIRMATION: 'confirmation',
 };
 
 export default function App() {
-  const [step, setStep] = useState(STEPS.SERVICES);
+  const [step, setStep] = useState(STEPS.PHONE);
+
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [checkingPhone, setCheckingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [existingAppointments, setExistingAppointments] = useState([]);
+  const [cancelingId, setCancelingId] = useState('');
 
   const [services, setServices] = useState([]);
   const [servicesError, setServicesError] = useState('');
-
   const [selectedService, setSelectedService] = useState(null);
+
   const [days, setDays] = useState([]);
   const [locked, setLocked] = useState(false);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -30,11 +47,48 @@ export default function App() {
   const [bookingError, setBookingError] = useState('');
   const [appointment, setAppointment] = useState(null);
 
-  useEffect(() => {
+  function loadServicesIfNeeded() {
+    if (services.length > 0) return;
     getServices()
       .then(setServices)
       .catch((err) => setServicesError(err.message));
-  }, []);
+  }
+
+  function handleSubmitPhone({ name, phone }) {
+    setCheckingPhone(true);
+    setPhoneError('');
+    setCustomerName(name);
+    setCustomerPhone(phone);
+    findAppointmentsByPhone(phone)
+      .then((data) => {
+        const upcoming = data.appointments || [];
+        if (upcoming.length > 0) {
+          setExistingAppointments(upcoming);
+          setStep(STEPS.EXISTING);
+        } else {
+          loadServicesIfNeeded();
+          setStep(STEPS.SERVICES);
+        }
+      })
+      .catch((err) => setPhoneError(err.message))
+      .finally(() => setCheckingPhone(false));
+  }
+
+  function handleCancelExisting(eventId) {
+    setCancelingId(eventId);
+    setPhoneError('');
+    cancelAppointment(eventId)
+      .then(() => {
+        setExistingAppointments((prev) => prev.filter((a) => a.eventId !== eventId));
+      })
+      .catch((err) => setPhoneError(err.message))
+      .finally(() => setCancelingId(''));
+  }
+
+  function handleContinueToBooking() {
+    loadServicesIfNeeded();
+    setStep(STEPS.SERVICES);
+  }
 
   function handleSelectService(service) {
     setSelectedService(service);
@@ -53,10 +107,10 @@ export default function App() {
   function handleSelectSlot(slot) {
     setSelectedSlot(slot);
     setBookingError('');
-    setStep(STEPS.FORM);
+    setStep(STEPS.REVIEW);
   }
 
-  function handleConfirm({ customerName, customerPhone }) {
+  function handleConfirm() {
     setSubmitting(true);
     setBookingError('');
     createAppointment({
@@ -73,8 +127,11 @@ export default function App() {
       .finally(() => setSubmitting(false));
   }
 
-  function handleNewBooking() {
-    setStep(STEPS.SERVICES);
+  function handleStartOver() {
+    setStep(STEPS.PHONE);
+    setCustomerName('');
+    setCustomerPhone('');
+    setExistingAppointments([]);
     setSelectedService(null);
     setSelectedSlot(null);
     setAppointment(null);
@@ -90,6 +147,20 @@ export default function App() {
       </header>
 
       <main className="px-4 sm:px-6 py-6 sm:py-8 max-w-3xl mx-auto">
+        {step === STEPS.PHONE && (
+          <PhoneGate loading={checkingPhone} error={phoneError} onSubmit={handleSubmitPhone} />
+        )}
+
+        {step === STEPS.EXISTING && (
+          <ExistingAppointment
+            appointments={existingAppointments}
+            cancelingId={cancelingId}
+            error={phoneError}
+            onCancel={handleCancelExisting}
+            onContinue={handleContinueToBooking}
+          />
+        )}
+
         {step === STEPS.SERVICES && (
           <>
             <h2 className="text-lg font-semibold mb-4">Escolha um serviço</h2>
@@ -122,7 +193,7 @@ export default function App() {
           </>
         )}
 
-        {step === STEPS.FORM && selectedService && selectedSlot && (
+        {step === STEPS.REVIEW && selectedService && selectedSlot && (
           <>
             <button
               onClick={() => setStep(STEPS.SCHEDULE)}
@@ -130,14 +201,22 @@ export default function App() {
             >
               ← Trocar horário
             </button>
-            <h2 className="text-lg font-semibold mb-4">Seus dados</h2>
+            <h2 className="text-lg font-semibold mb-4">Confirme seu agendamento</h2>
             {bookingError && <p className="text-red-400 mb-3">{bookingError}</p>}
-            <BookingForm submitting={submitting} onBack={() => setStep(STEPS.SCHEDULE)} onConfirm={handleConfirm} />
+            <ReviewStep
+              service={selectedService}
+              slot={selectedSlot}
+              customerName={customerName}
+              customerPhone={customerPhone}
+              submitting={submitting}
+              onBack={() => setStep(STEPS.SCHEDULE)}
+              onConfirm={handleConfirm}
+            />
           </>
         )}
 
         {step === STEPS.CONFIRMATION && appointment && (
-          <Confirmation appointment={appointment} onNewBooking={handleNewBooking} />
+          <Confirmation appointment={appointment} onNewBooking={handleStartOver} />
         )}
       </main>
     </div>

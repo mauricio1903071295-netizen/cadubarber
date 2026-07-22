@@ -26,3 +26,13 @@ export function createAppointment(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function findAppointmentsByPhone(phone) {
+  return request(`/api/appointments?phone=${encodeURIComponent(phone)}`);
+}
+
+export function cancelAppointment(eventId) {
+  return request(`/api/appointments/${encodeURIComponent(eventId)}`, {
+    method: 'DELETE',
+  });
+}

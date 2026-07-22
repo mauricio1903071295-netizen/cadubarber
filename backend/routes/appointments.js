@@ -1,9 +1,38 @@
 const express = require('express');
 const { getConfig } = require('../services/config');
-const { getServiceById, isSlotAvailable, splitLocalDateTime } = require('../services/availability');
-const { createEvent } = require('../services/googleCalendar');
+const { getServiceById, isSlotAvailable, splitLocalDateTime, getTodayDateStrInTZ } = require('../services/availability');
+const { createEvent, findAppointmentsByPhone, cancelEvent } = require('../services/googleCalendar');
 
 const router = express.Router();
+
+// Busca agendamentos futuros (a partir de hoje) vinculados a um telefone —
+// usado no início do fluxo do cliente pra reconhecer quem já tem horário marcado.
+router.get('/', async (req, res) => {
+  const { phone } = req.query;
+  if (!phone) {
+    return res.status(400).json({ error: 'Parâmetro phone é obrigatório' });
+  }
+
+  try {
+    const config = await getConfig();
+    const todayStr = getTodayDateStrInTZ(config.timezone);
+    const appointments = await findAppointmentsByPhone(phone, todayStr);
+    res.json({ appointments });
+  } catch (err) {
+    console.error('Erro ao buscar agendamentos:', err);
+    res.status(500).json({ error: 'Erro ao buscar agendamentos' });
+  }
+});
+
+router.delete('/:eventId', async (req, res) => {
+  try {
+    await cancelEvent(req.params.eventId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao cancelar agendamento:', err);
+    res.status(500).json({ error: 'Erro ao cancelar agendamento' });
+  }
+});
 
 router.post('/', async (req, res) => {
   const { serviceId, start, customerName, customerPhone } = req.body || {};

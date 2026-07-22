@@ -31,4 +31,25 @@ async function createEvent({ dateStr, timeStr, durationMinutes, serviceName, cus
   return data;
 }
 
-module.exports = { listEvents, createEvent };
+// Busca agendamentos futuros (a partir de sinceDateStr, "YYYY-MM-DD") cuja
+// descrição contenha o telefone informado.
+async function findAppointmentsByPhone(phone, sinceDateStr) {
+  const data = await callAppsScript('buscar_agendamentos', { telefone: phone, desde: sinceDateStr });
+  return (data.agendamentos || []).map((a) => ({
+    eventId: a.id,
+    title: a.titulo,
+    start: a.inicio,
+    end: a.fim,
+  }));
+}
+
+// Cancela um agendamento existente na agenda do barbeiro.
+async function cancelEvent(eventId) {
+  const data = await callAppsScript('cancelar_agendamento', { eventId }, 'POST');
+  if (!data.sucesso) {
+    throw new Error(data.erro || 'Erro ao cancelar agendamento');
+  }
+  return data;
+}
+
+module.exports = { listEvents, createEvent, findAppointmentsByPhone, cancelEvent };

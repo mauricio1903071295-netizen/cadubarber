@@ -49,6 +49,7 @@ function handleRequest(e, method) {
     if (action === 'cancelar_agendamento') return jsonResponse(cancelarAgendamento(params.eventId));
     if (action === 'obter_configuracao') return jsonResponse(obterConfiguracao());
     if (action === 'salvar_configuracao') return jsonResponse(salvarConfiguracao(params));
+    if (action === 'buscar_agendamentos') return jsonResponse(buscarAgendamentos(params.telefone, params.desde));
     return jsonResponse({ error: 'Acao desconhecida: ' + action });
   } catch (err) {
     return jsonResponse({ error: err.message });
@@ -95,6 +96,35 @@ function cancelarAgendamento(eventId) {
   return { sucesso: true };
 }
 
+// Busca agendamentos futuros (a partir de "desde", formato YYYY-MM-DD) cuja
+// descricao contenha o telefone informado. Nunca olha pra tras, entao nao
+// cresce indefinidamente. Compara so os digitos do telefone pra nao
+// depender de formatacao (com/sem mascara).
+function buscarAgendamentos(telefone, desde) {
+  var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  var telefoneNormalizado = String(telefone || '').replace(/\D/g, '');
+  if (!telefoneNormalizado) return { agendamentos: [] };
+
+  var inicio = new Date(desde + 'T00:00:00');
+  var fim = new Date(inicio.getTime() + 90 * 24 * 60 * 60 * 1000);
+  var eventos = calendar.getEvents(inicio, fim);
+
+  var encontrados = eventos.filter(function (ev) {
+    var descNormalizada = (ev.getDescription() || '').replace(/\D/g, '');
+    return descNormalizada.indexOf(telefoneNormalizado) !== -1;
+  });
+
+  var lista = encontrados.map(function (ev) {
+    return {
+      id: ev.getId(),
+      titulo: ev.getTitle(),
+      inicio: ev.getStartTime().toISOString(),
+      fim: ev.getEndTime().toISOString(),
+    };
+  });
+  return { agendamentos: lista };
+}
+
 // Configuracao editavel pelo painel /admin (servicos, horario de
 // funcionamento, trava de agenda). Guardada como JSON no PropertiesService —
 // nao precisa de planilha nem de banco de dados separado.
@@ -139,10 +169,13 @@ Todas as requisições (GET com querystring ou POST com corpo JSON) precisam do 
 - **`GET ?action=eventos&desde=<ISO>&ate=<ISO>`** → `{ eventos: [{ id, titulo, inicio, fim }] }`
 - **`POST { action: 'criar_agendamento', data, hora, duracao, servico, nome_cliente, telefone_cliente }`**
   → `{ sucesso: true, eventId, inicio, fim }`
-- **`POST { action: 'cancelar_agendamento', eventId }`** → `{ sucesso: true }` (não usado pelo MVP ainda)
+- **`POST { action: 'cancelar_agendamento', eventId }`** → `{ sucesso: true }`
 - **`GET ?action=obter_configuracao`** → `{ configuracao: {...} | null }` (`null` até o painel
   admin salvar pela primeira vez — o backend Node usa valores padrão nesse caso)
 - **`POST { action: 'salvar_configuracao', configuracao: '<JSON em string>' }`** → `{ sucesso: true }`
+- **`GET ?action=buscar_agendamentos&telefone=<...>&desde=<YYYY-MM-DD>`** →
+  `{ agendamentos: [{ id, titulo, inicio, fim }] }` — busca só a partir de "desde" (nunca no
+  passado), então a busca não cresce com o tempo.
 
 `data` é `YYYY-MM-DD` e `hora` é `HH:mm`, sempre no fuso horário do script (o mesmo da
 conta `cadubarber47@gmail.com`, que deve ser `America/Sao_Paulo`).

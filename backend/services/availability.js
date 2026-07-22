@@ -168,4 +168,10 @@ function splitLocalDateTime(date, timeZone) {
   return { dateStr, timeStr };
 }
 
-module.exports = { getServiceById, getAvailableDays, isSlotAvailable, splitLocalDateTime };
+module.exports = {
+  getServiceById,
+  getAvailableDays,
+  isSlotAvailable,
+  splitLocalDateTime,
+  getTodayDateStrInTZ,
+};
