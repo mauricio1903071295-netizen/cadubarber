@@ -32,6 +32,7 @@ export default function App() {
   const [phoneError, setPhoneError] = useState('');
   const [existingAppointments, setExistingAppointments] = useState([]);
   const [cancelingId, setCancelingId] = useState('');
+  const [reschedulingId, setReschedulingId] = useState('');
 
   const [services, setServices] = useState([]);
   const [servicesError, setServicesError] = useState('');
@@ -83,6 +84,19 @@ export default function App() {
       })
       .catch((err) => setPhoneError(err.message))
       .finally(() => setCancelingId(''));
+  }
+
+  function handleRescheduleExisting(eventId) {
+    setReschedulingId(eventId);
+    setPhoneError('');
+    cancelAppointment(eventId)
+      .then(() => {
+        setExistingAppointments((prev) => prev.filter((a) => a.eventId !== eventId));
+        loadServicesIfNeeded();
+        setStep(STEPS.SERVICES);
+      })
+      .catch((err) => setPhoneError(err.message))
+      .finally(() => setReschedulingId(''));
   }
 
   function handleContinueToBooking() {
@@ -155,8 +169,10 @@ export default function App() {
           <ExistingAppointment
             appointments={existingAppointments}
             cancelingId={cancelingId}
+            reschedulingId={reschedulingId}
             error={phoneError}
             onCancel={handleCancelExisting}
+            onReschedule={handleRescheduleExisting}
             onContinue={handleContinueToBooking}
           />
         )}
