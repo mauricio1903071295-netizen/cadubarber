@@ -111,6 +111,10 @@ export default function AdminApp() {
     setConfig((prev) => ({ ...prev, startDate: value || null }));
   }
 
+  function updateDaysAhead(value) {
+    setConfig((prev) => ({ ...prev, daysAhead: value }));
+  }
+
   function handleSave() {
     setSaving(true);
     setSaveMessage('');
@@ -194,6 +198,17 @@ export default function AdminApp() {
             type="date"
             value={config.startDate || ''}
             onChange={(e) => updateStartDate(e.target.value)}
+            className="w-full rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-base"
+          />
+        </div>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <label className="block text-xs text-neutral-400 mb-1">Quantos dias mostrar pra frente</label>
+          <input
+            type="number"
+            min="1"
+            max="90"
+            value={config.daysAhead}
+            onChange={(e) => updateDaysAhead(e.target.value)}
             className="w-full rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-base"
           />
         </div>

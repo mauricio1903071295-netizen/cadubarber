@@ -34,13 +34,18 @@ router.get('/config', async (req, res) => {
 });
 
 router.put('/config', async (req, res) => {
-  const { services, workingHours, lunchBreak, locked, whatsappNumber, address, startDate } = req.body || {};
+  const { services, workingHours, lunchBreak, locked, whatsappNumber, address, startDate, daysAhead } =
+    req.body || {};
 
   if (!Array.isArray(services) || services.length === 0) {
     return res.status(400).json({ error: 'A lista de serviços não pode ficar vazia' });
   }
   if (!workingHours || typeof workingHours !== 'object' || Object.keys(workingHours).length === 0) {
     return res.status(400).json({ error: 'É preciso pelo menos um dia de funcionamento' });
+  }
+  const daysAheadNumber = Number(daysAhead);
+  if (!Number.isInteger(daysAheadNumber) || daysAheadNumber < 1 || daysAheadNumber > 90) {
+    return res.status(400).json({ error: 'Dias de antecedência deve ser um número entre 1 e 90' });
   }
 
   try {
@@ -59,6 +64,7 @@ router.put('/config', async (req, res) => {
       whatsappNumber: whatsappNumber || '',
       address: address || '',
       startDate: startDate || null,
+      daysAhead: daysAheadNumber,
     };
 
     await saveConfig(updated);

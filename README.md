@@ -60,6 +60,7 @@ Em `SEU_DOMINIO/admin` o Cadu consegue, sem editar código:
 - Editar o horário de funcionamento de cada dia da semana e o intervalo de almoço
 - **Trancar a agenda** — desativa novos agendamentos temporariamente (ex: férias)
 - Definir uma **data de início dos agendamentos** — útil pra quando o barbeiro ainda está atendendo noutro endereço e só quer liberar horários a partir de uma data futura
+- Ajustar **quantos dias à frente** o calendário mostra (padrão: 30, contados sempre a partir de hoje)
 - Cadastrar o WhatsApp e o endereço da barbearia (usados no botão de confirmação que o cliente vê depois de agendar)
 
 O acesso é protegido por uma senha única (variável `ADMIN_PASSWORD`), sem sistema de

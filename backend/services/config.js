@@ -7,15 +7,15 @@ let cached = null;
 let cachedAt = 0;
 
 // Campos que o Cadu edita pelo painel /admin e ficam salvos no Apps Script.
-// timezone, slotIntervalMinutes e daysAhead NÃO entram aqui de propósito:
-// sempre vêm do código (backend/config/business.js), nunca de um retrato
-// salvo antigo — assim uma mudança de código (ex: aumentar daysAhead) vale
-// pra todo mundo imediatamente, mesmo quem já salvou algo no admin antes
-// desse campo existir.
+// timezone e slotIntervalMinutes NÃO entram aqui de propósito: sempre vêm
+// do código (backend/config/business.js), nunca de um retrato salvo antigo.
+// Os demais têm fallback pro padrão do código quando ausentes de um retrato
+// salvo antes desse campo existir — assim campos novos não ficam presos.
 function buildEditableDefaults() {
   return {
     workingHours: defaultBusiness.workingHours,
     lunchBreak: defaultBusiness.lunchBreak,
+    daysAhead: defaultBusiness.daysAhead,
     startDate: defaultBusiness.startDate || null,
     locked: false,
     services: defaultServices,
@@ -28,7 +28,6 @@ function buildDefaultConfig() {
   return {
     timezone: defaultBusiness.timezone,
     slotIntervalMinutes: defaultBusiness.slotIntervalMinutes,
-    daysAhead: defaultBusiness.daysAhead,
     ...buildEditableDefaults(),
   };
 }
@@ -49,9 +48,9 @@ async function getConfig({ skipCache = false } = {}) {
   const config = {
     timezone: defaultBusiness.timezone,
     slotIntervalMinutes: defaultBusiness.slotIntervalMinutes,
-    daysAhead: defaultBusiness.daysAhead,
     workingHours: saved.workingHours || editableDefaults.workingHours,
     lunchBreak: saved.lunchBreak !== undefined ? saved.lunchBreak : editableDefaults.lunchBreak,
+    daysAhead: saved.daysAhead || editableDefaults.daysAhead,
     startDate: saved.startDate || editableDefaults.startDate,
     locked: Boolean(saved.locked),
     services: saved.services || editableDefaults.services,
@@ -68,6 +67,7 @@ async function saveConfig(config) {
   const {
     workingHours,
     lunchBreak,
+    daysAhead,
     startDate,
     locked,
     services,
@@ -75,7 +75,16 @@ async function saveConfig(config) {
     address,
   } = config;
 
-  const editablePayload = { workingHours, lunchBreak, startDate, locked, services, whatsappNumber, address };
+  const editablePayload = {
+    workingHours,
+    lunchBreak,
+    daysAhead,
+    startDate,
+    locked,
+    services,
+    whatsappNumber,
+    address,
+  };
   await callAppsScript('salvar_configuracao', { configuracao: JSON.stringify(editablePayload) }, 'POST');
   cached = { ...config };
   cachedAt = Date.now();
