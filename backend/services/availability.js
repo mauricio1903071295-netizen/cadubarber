@@ -99,6 +99,10 @@ async function getSlotsForDate(serviceId, dateStr) {
   const service = findService(config, serviceId);
   if (!service) throw new Error('Serviço inválido');
 
+  if (config.startDate && dateStr < config.startDate) {
+    return { locked: false, closed: true, slots: [] };
+  }
+
   const dayOfWeek = getDayOfWeek(dateStr);
   if (!config.workingHours[dayOfWeek]) {
     return { locked: false, closed: true, slots: [] };

@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
       timezone: config.timezone,
       workingHours: config.workingHours,
       daysAhead: config.daysAhead,
+      startDate: config.startDate || null,
       locked: config.locked,
     });
   } catch (err) {

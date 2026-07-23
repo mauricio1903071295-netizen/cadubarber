@@ -21,4 +21,8 @@ module.exports = {
 
   // Quantos dias à frente o app mostra disponibilidade.
   daysAhead: 30,
+
+  // Não aceita agendamento antes dessa data (YYYY-MM-DD), ou null pra não
+  // ter restrição. Útil pra quando o barbeiro ainda está noutro endereço.
+  startDate: '2026-08-04',
 };

@@ -27,14 +27,18 @@ function formatMonthLabel(dateStr) {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
-export default function DayPicker({ workingHours, daysAhead, selectedDate, onSelectDate }) {
+export default function DayPicker({ workingHours, daysAhead, startDate, selectedDate, onSelectDate }) {
   const todayStr = todayStrInTZ();
+  // Se a barbearia só abre numa data futura (ex: mudança de endereço), o
+  // primeiro dia selecionável é essa data, não hoje.
+  const earliestAllowedStr = startDate && startDate > todayStr ? startDate : todayStr;
   const lastAllowedStr = addDays(todayStr, daysAhead - 1);
-  const [todayY, todayM] = todayStr.split('-').map(Number);
+
+  const [firstY, firstM] = earliestAllowedStr.split('-').map(Number);
   const [lastY, lastM] = lastAllowedStr.split('-').map(Number);
 
-  const [viewYear, setViewYear] = useState(todayY);
-  const [viewMonth, setViewMonth] = useState(todayM - 1); // 0-indexado
+  const [viewYear, setViewYear] = useState(firstY);
+  const [viewMonth, setViewMonth] = useState(firstM - 1); // 0-indexado
 
   const firstOfMonthStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-01`;
   const totalDays = daysInMonth(viewYear, viewMonth);
@@ -45,7 +49,7 @@ export default function DayPicker({ workingHours, daysAhead, selectedDate, onSel
     cells.push(`${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
   }
 
-  const canGoPrev = viewYear > todayY || (viewYear === todayY && viewMonth > todayM - 1);
+  const canGoPrev = viewYear > firstY || (viewYear === firstY && viewMonth > firstM - 1);
   const canGoNext = viewYear < lastY || (viewYear === lastY && viewMonth < lastM - 1);
 
   function goPrevMonth() {
@@ -94,7 +98,7 @@ export default function DayPicker({ workingHours, daysAhead, selectedDate, onSel
 
           const weekday = dayOfWeek(dateStr);
           const isOpenWeekday = Boolean(workingHours[weekday]);
-          const inRange = dateStr >= todayStr && dateStr <= lastAllowedStr;
+          const inRange = dateStr >= earliestAllowedStr && dateStr <= lastAllowedStr;
           const enabled = isOpenWeekday && inRange;
           const isSelected = dateStr === selectedDate;
           const dayNumber = Number(dateStr.slice(-2));

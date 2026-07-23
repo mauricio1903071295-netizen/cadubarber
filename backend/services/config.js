@@ -13,6 +13,7 @@ function buildDefaultConfig() {
     lunchBreak: defaultBusiness.lunchBreak,
     slotIntervalMinutes: defaultBusiness.slotIntervalMinutes,
     daysAhead: defaultBusiness.daysAhead,
+    startDate: defaultBusiness.startDate || null,
     locked: false,
     services: defaultServices,
     whatsappNumber: '',

@@ -107,6 +107,10 @@ export default function AdminApp() {
     setConfig((prev) => ({ ...prev, address: value }));
   }
 
+  function updateStartDate(value) {
+    setConfig((prev) => ({ ...prev, startDate: value || null }));
+  }
+
   function handleSave() {
     setSaving(true);
     setSaveMessage('');
@@ -176,6 +180,23 @@ export default function AdminApp() {
             <div className="absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
           </div>
         </label>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-white">Início dos agendamentos</h2>
+        <p className="text-sm text-neutral-400">
+          Deixe em branco para aceitar agendamentos a partir de hoje. Preencha uma data para só liberar
+          horários a partir dela (ex: quando o endereço novo abre).
+        </p>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <label className="block text-xs text-neutral-400 mb-1">Aceitar agendamentos a partir de</label>
+          <input
+            type="date"
+            value={config.startDate || ''}
+            onChange={(e) => updateStartDate(e.target.value)}
+            className="w-full rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-base"
+          />
+        </div>
       </section>
 
       <section className="space-y-3">

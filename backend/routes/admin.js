@@ -34,7 +34,7 @@ router.get('/config', async (req, res) => {
 });
 
 router.put('/config', async (req, res) => {
-  const { services, workingHours, lunchBreak, locked, whatsappNumber, address } = req.body || {};
+  const { services, workingHours, lunchBreak, locked, whatsappNumber, address, startDate } = req.body || {};
 
   if (!Array.isArray(services) || services.length === 0) {
     return res.status(400).json({ error: 'A lista de serviços não pode ficar vazia' });
@@ -58,6 +58,7 @@ router.put('/config', async (req, res) => {
       locked: Boolean(locked),
       whatsappNumber: whatsappNumber || '',
       address: address || '',
+      startDate: startDate || null,
     };
 
     await saveConfig(updated);

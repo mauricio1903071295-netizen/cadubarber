@@ -16,6 +16,17 @@ import {
 } from './api.js';
 import { businessName, businessTagline } from './config.js';
 
+const TIMEZONE = 'America/Sao_Paulo';
+
+function todayStrInTZ() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date());
+}
+
+function formatDatePtBr(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 const STEPS = {
   PHONE: 'phone',
   EXISTING: 'existing',
@@ -232,9 +243,15 @@ export default function App() {
               </p>
             ) : (
               <>
+                {businessInfo.startDate && businessInfo.startDate > todayStrInTZ() && (
+                  <p className="text-neutral-400 text-sm mb-3">
+                    Agendamentos abertos a partir de {formatDatePtBr(businessInfo.startDate)}.
+                  </p>
+                )}
                 <DayPicker
                   workingHours={businessInfo.workingHours}
                   daysAhead={businessInfo.daysAhead}
+                  startDate={businessInfo.startDate}
                   selectedDate={selectedDate}
                   onSelectDate={handleSelectDate}
                 />

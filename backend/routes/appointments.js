@@ -54,6 +54,11 @@ router.post('/', async (req, res) => {
       return res.status(423).json({ error: 'Agenda temporariamente fechada. Tente novamente mais tarde.' });
     }
 
+    const { dateStr, timeStr } = splitLocalDateTime(startDate, config.timezone);
+    if (config.startDate && dateStr < config.startDate) {
+      return res.status(409).json({ error: 'Agenda ainda não está aberta para essa data.' });
+    }
+
     const service = await getServiceById(serviceId);
     if (!service) {
       return res.status(404).json({ error: 'Serviço não encontrado' });
@@ -65,7 +70,6 @@ router.post('/', async (req, res) => {
     }
 
     const endDate = new Date(startDate.getTime() + service.durationMinutes * 60000);
-    const { dateStr, timeStr } = splitLocalDateTime(startDate, config.timezone);
 
     const event = await createEvent({
       dateStr,
