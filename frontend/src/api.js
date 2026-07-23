@@ -16,8 +16,12 @@ export function getServices() {
   return request('/api/services');
 }
 
-export function getAvailability(serviceId) {
-  return request(`/api/availability?serviceId=${encodeURIComponent(serviceId)}`);
+export function getBusinessInfo() {
+  return request('/api/business');
+}
+
+export function getAvailability(serviceId, date) {
+  return request(`/api/availability?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}`);
 }
 
 export function createAppointment(payload) {

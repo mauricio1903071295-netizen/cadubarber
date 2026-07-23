@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import ServiceList from './components/ServiceList.jsx';
-import ScheduleList from './components/ScheduleList.jsx';
+import DayPicker from './components/DayPicker.jsx';
+import SlotList from './components/SlotList.jsx';
 import PhoneGate from './components/PhoneGate.jsx';
 import ExistingAppointment from './components/ExistingAppointment.jsx';
 import ReviewStep from './components/ReviewStep.jsx';
 import Confirmation from './components/Confirmation.jsx';
 import {
   getServices,
+  getBusinessInfo,
   getAvailability,
   createAppointment,
   findAppointmentsByPhone,
@@ -38,10 +40,13 @@ export default function App() {
   const [servicesError, setServicesError] = useState('');
   const [selectedService, setSelectedService] = useState(null);
 
-  const [days, setDays] = useState([]);
-  const [locked, setLocked] = useState(false);
-  const [loadingAvailability, setLoadingAvailability] = useState(false);
-  const [availabilityError, setAvailabilityError] = useState('');
+  const [businessInfo, setBusinessInfo] = useState(null);
+  const [businessInfoError, setBusinessInfoError] = useState('');
+
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +58,14 @@ export default function App() {
     getServices()
       .then(setServices)
       .catch((err) => setServicesError(err.message));
+  }
+
+  function loadBusinessInfoIfNeeded() {
+    if (businessInfo) return;
+    setBusinessInfoError('');
+    getBusinessInfo()
+      .then(setBusinessInfo)
+      .catch((err) => setBusinessInfoError(err.message));
   }
 
   function handleSubmitPhone({ name, phone }) {
@@ -106,16 +119,28 @@ export default function App() {
 
   function handleSelectService(service) {
     setSelectedService(service);
+    setSelectedDate(null);
+    setSlots([]);
+    setSlotsError('');
     setStep(STEPS.SCHEDULE);
-    setLoadingAvailability(true);
-    setAvailabilityError('');
-    getAvailability(service.id)
+    loadBusinessInfoIfNeeded();
+  }
+
+  function handleSelectDate(dateStr) {
+    setSelectedDate(dateStr);
+    setSlots([]);
+    setSlotsError('');
+    setLoadingSlots(true);
+    getAvailability(selectedService.id, dateStr)
       .then((data) => {
-        setLocked(Boolean(data.locked));
-        setDays(data.days || []);
+        if (data.locked) {
+          setSlotsError('A agenda está temporariamente fechada para novos agendamentos.');
+        } else {
+          setSlots(data.slots || []);
+        }
       })
-      .catch((err) => setAvailabilityError(err.message))
-      .finally(() => setLoadingAvailability(false));
+      .catch((err) => setSlotsError(err.message))
+      .finally(() => setLoadingSlots(false));
   }
 
   function handleSelectSlot(slot) {
@@ -147,10 +172,10 @@ export default function App() {
     setCustomerPhone('');
     setExistingAppointments([]);
     setSelectedService(null);
+    setSelectedDate(null);
+    setSlots([]);
     setSelectedSlot(null);
     setAppointment(null);
-    setDays([]);
-    setLocked(false);
   }
 
   return (
@@ -198,13 +223,28 @@ export default function App() {
               {selectedService.name} — {selectedService.durationMinutes} min — R${' '}
               {selectedService.price.toFixed(2)}
             </p>
-            {availabilityError && <p className="text-red-400 mb-3">{availabilityError}</p>}
-            {!loadingAvailability && locked ? (
+            {businessInfoError && <p className="text-red-400 mb-3">{businessInfoError}</p>}
+            {!businessInfo ? (
+              <p className="text-neutral-400">Carregando calendário...</p>
+            ) : businessInfo.locked ? (
               <p className="text-neutral-400">
                 A agenda está temporariamente fechada para novos agendamentos. Volte em breve!
               </p>
             ) : (
-              <ScheduleList days={days} loading={loadingAvailability} onSelectSlot={handleSelectSlot} />
+              <>
+                <DayPicker
+                  workingHours={businessInfo.workingHours}
+                  daysAhead={businessInfo.daysAhead}
+                  selectedDate={selectedDate}
+                  onSelectDate={handleSelectDate}
+                />
+                {selectedDate && (
+                  <div className="mt-5">
+                    {slotsError && <p className="text-red-400 mb-3">{slotsError}</p>}
+                    <SlotList slots={slots} loading={loadingSlots} onSelectSlot={handleSelectSlot} />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

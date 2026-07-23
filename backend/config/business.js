@@ -20,5 +20,5 @@ module.exports = {
   slotIntervalMinutes: 30,
 
   // Quantos dias à frente o app mostra disponibilidade.
-  daysAhead: 14,
+  daysAhead: 30,
 };

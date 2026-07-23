@@ -34,11 +34,6 @@ function getTodayDateStrInTZ(timeZone) {
   return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
 }
 
-function addDaysToDateStr(dateStr, days) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
-
 // Calcula os horários livres de um dia específico a partir dos eventos já
 // carregados da Google Agenda (evita repetir chamadas à API por dia).
 function computeSlotsForDate(dateStr, service, busyEvents, config) {
@@ -92,44 +87,32 @@ async function getServiceById(id) {
   return findService(config, id);
 }
 
-// Retorna os próximos dias de funcionamento com os horários livres de cada um,
-// para um serviço específico. Faz uma única consulta à Google Agenda cobrindo
-// todo o intervalo para minimizar chamadas à API.
-async function getAvailableDays(serviceId) {
+// Retorna os horários livres de um único dia, para um serviço específico.
+// Consulta a Google Agenda só da janela daquele dia, para gastar o mínimo
+// de dados possível (o cliente escolhe o dia num calendário antes de pedir isso).
+async function getSlotsForDate(serviceId, dateStr) {
   const config = await getConfig();
   if (config.locked) {
-    return { locked: true, days: [] };
+    return { locked: true, closed: false, slots: [] };
   }
 
   const service = findService(config, serviceId);
   if (!service) throw new Error('Serviço inválido');
 
-  const todayStr = getTodayDateStrInTZ(config.timezone);
-  const lastDateStr = addDaysToDateStr(todayStr, config.daysAhead - 1);
-
-  const rangeStartUtc = fromZonedTime(`${todayStr}T00:00:00`, config.timezone);
-  const rangeEndUtc = fromZonedTime(`${lastDateStr}T23:59:59`, config.timezone);
-  const events = await listEvents(rangeStartUtc.toISOString(), rangeEndUtc.toISOString());
-
-  const days = [];
-  for (let i = 0; i < config.daysAhead; i += 1) {
-    const dateStr = addDaysToDateStr(todayStr, i);
-    const dayOfWeek = getDayOfWeek(dateStr);
-    if (!config.workingHours[dayOfWeek]) continue; // dia fechado, nem aparece na lista
-
-    const dayEvents = events.filter((e) => {
-      const start = e.start?.dateTime || e.start?.date;
-      return start && start.slice(0, 10) === dateStr;
-    });
-
-    days.push({
-      date: dateStr,
-      weekday: dayOfWeek,
-      slots: computeSlotsForDate(dateStr, service, dayEvents, config),
-    });
+  const dayOfWeek = getDayOfWeek(dateStr);
+  if (!config.workingHours[dayOfWeek]) {
+    return { locked: false, closed: true, slots: [] };
   }
 
-  return { locked: false, days };
+  const dayStartUtc = fromZonedTime(`${dateStr}T00:00:00`, config.timezone);
+  const dayEndUtc = fromZonedTime(`${dateStr}T23:59:59`, config.timezone);
+  const events = await listEvents(dayStartUtc.toISOString(), dayEndUtc.toISOString());
+
+  return {
+    locked: false,
+    closed: false,
+    slots: computeSlotsForDate(dateStr, service, events, config),
+  };
 }
 
 // Reconfere disponibilidade de um horário específico bem antes de confirmar o
@@ -170,7 +153,7 @@ function splitLocalDateTime(date, timeZone) {
 
 module.exports = {
   getServiceById,
-  getAvailableDays,
+  getSlotsForDate,
   isSlotAvailable,
   splitLocalDateTime,
   getTodayDateStrInTZ,

@@ -17,7 +17,7 @@ cadubarber-agendamento/
 │   └── index.js         # entrypoint serverless da Vercel (reaproveita backend/app.js)
 ├── frontend/             # React + Vite + Tailwind
 │   └── src/
-│       ├── components/   # ServiceList, ScheduleList, BookingForm, Confirmation
+│       ├── components/   # ServiceList, DayPicker, SlotList, PhoneGate, ExistingAppointment, ReviewStep, Confirmation
 │       ├── api.js        # chamadas à API pública
 │       ├── adminApi.js   # chamadas à API do painel admin (com senha)
 │       ├── App.jsx        # fluxo do cliente (serviço → horário → dados → confirmação)
@@ -45,7 +45,7 @@ cadubarber-agendamento/
 
 1. Cliente informa nome e telefone (com máscara) na home. O app busca na Google Agenda se já existe algum agendamento futuro com aquele telefone (`GET /api/appointments?phone=`); se existir, mostra os detalhes com opção de cancelar (`DELETE /api/appointments/:eventId`) em vez de seguir direto pro agendamento.
 2. Cliente escolhe um serviço.
-3. O app busca na Google Agenda do barbeiro os eventos dos próximos dias (`GET /api/availability`) e calcula os horários livres, cruzando com o horário de funcionamento configurado e a duração do serviço.
+3. Um calendário mostra os dias de funcionamento dentro da janela configurada (`GET /api/business`, informação pública leve — não consulta a Google Agenda). Ao escolher um dia, o app busca só os horários daquele dia específico (`GET /api/availability?serviceId=&date=`), cruzando os eventos da agenda com o horário de funcionamento e a duração do serviço — evita baixar todos os dias de uma vez.
 4. Cliente escolhe um horário e confirma na tela de revisão (`POST /api/appointments`) — nome e telefone já foram coletados no passo 1.
 5. O backend reconfere a disponibilidade (evita conflito de última hora) e cria um evento na Google Agenda através do Apps Script.
 6. Cliente vê a tela de confirmação com os detalhes e um botão para enviar a confirmação por WhatsApp (se o Cadu tiver cadastrado o número em `/admin`).

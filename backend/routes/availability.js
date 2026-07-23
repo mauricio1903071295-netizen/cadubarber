@@ -1,13 +1,16 @@
 const express = require('express');
-const { getAvailableDays, getServiceById } = require('../services/availability');
+const { getSlotsForDate, getServiceById } = require('../services/availability');
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const { serviceId } = req.query;
+  const { serviceId, date } = req.query;
 
   if (!serviceId) {
     return res.status(400).json({ error: 'Parâmetro serviceId é obrigatório' });
+  }
+  if (!date) {
+    return res.status(400).json({ error: 'Parâmetro date (YYYY-MM-DD) é obrigatório' });
   }
 
   try {
@@ -16,7 +19,7 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ error: 'Serviço não encontrado' });
     }
 
-    const result = await getAvailableDays(serviceId);
+    const result = await getSlotsForDate(serviceId, date);
     res.json(result);
   } catch (err) {
     console.error('Erro ao consultar disponibilidade:', err);
